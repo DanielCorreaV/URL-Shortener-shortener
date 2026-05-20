@@ -1,0 +1,35 @@
+name: Auto Update Monorepo Pointer
+
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    update-parent:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Monorepo (Parent)
+              uses: actions/checkout@v4
+              with:
+                  repository: "DanielCorreaV/URL-Shortener"
+                  token: ${{ secrets.MONOREPO_UPDATE_TOKEN }}
+                  fetch-depth: 0
+
+            - name: Update Submodule Pointer
+              run: |
+                  git config --global user.name "github-actions[bot]"
+                  git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+                  git submodule init
+
+                  git submodule update --remote modules/URL-Shortener-auth
+
+                  if [ -n "$(git status --porcelain)" ]; then
+                    echo "Cambios detectados en el puntero del submódulo. Comiteando..."
+                    git add .
+                    git commit -m "chore(submodule): auto-update URL-Shortener-auth pointer to latest"
+                    git push origin main
+                  else
+                    echo "El monorrepo ya estaba apuntando al último commit. No se requiere actualización."
+                  fi
